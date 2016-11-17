@@ -1,2 +1,4 @@
 # hello-world
-Just another repository
+
+Hi. My nickname is SoongsilMilhouse.
+Keep in touch :)
