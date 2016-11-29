@@ -1,0 +1,98 @@
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<stdbool.h>
+typedef struct{
+    char inode[64];
+    char data[128];
+}SUPER;
+
+typedef struct{
+    bool fileType;
+    char date[20];
+    int fileSize;
+    char direct_ptr;
+    char *single_ptr[102];
+    char **double_ptr;
+}INODE;
+
+typedef struct {
+    char *data;
+}DATABLOCK;
+
+typedef struct{
+    char bootBlock[2];
+    SUPER superBlock;
+    INODE inode[512];
+    DATABLOCK dataBlock[1024];
+}FILESYS;
+char *tmp1;
+void mycat(char *);
+void myflush();
+char * divideToken(char *);
+int main(int argc, char **argv)
+{
+    FILE *ifp, *ofp;
+    int i,ch;
+    char *tmp;
+    char path[20]= "/ ",command[20];
+    FILESYS fileSystem;
+
+    if( (ifp = fopen("myfs.txt","rb")) == NULL){
+        fprintf(stderr, "error : no myfs");
+        return 0;
+    }
+
+    fclose(ifp);
+
+    while(1){
+        printf("[%s]$ ",path);
+        scanf("%[^\n]", command);
+        myflush();
+        tmp = divideToken(command);
+        if(strcmp(tmp1,"mycat")==0){
+                mycat(tmp);
+        }
+        if(strcmp(tmp1,"byebye")==0)
+            return 0;
+        else{
+            for(i=0; i<20;i++)
+                command[i] = '\0';
+        }
+    //  tmp=NULL;
+    }
+    return 0;
+}
+void mycat(char *argv)
+{
+     int ch;
+    FILE *fp;
+    // 일기전용으로 파일을 연다.
+    if((fp = fopen(argv, "rb")) == NULL)
+    {
+        fprintf(stderr, "ERROR!\n");
+        return;
+    }
+
+    // 내용 출력
+    while((ch = getc(fp)) != EOF)
+    {
+        putchar(ch);
+    }
+
+    fclose(fp);
+}
+char * divideToken(char *arr)
+{
+    char *tmp;
+    tmp1 = strtok(arr," ");
+    tmp = strtok(NULL," ");
+    return tmp;
+}
+
+void myflush()
+{
+    while(getchar()!='\n');
+}
+
+                         
