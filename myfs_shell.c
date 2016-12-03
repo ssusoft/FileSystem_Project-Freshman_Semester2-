@@ -2,93 +2,173 @@
 #include<string.h>
 #include<stdlib.h>
 
-typedef struct{
-	unsigned s_inode[64];
-	unsigned s_data[128]; 
-}super;
+typedef struct tree{
+	char name[5];
+	struct tree * sibling;
+	struct tree * child;
+}tree;
 
-typedef struct{
-	char boot_block[2];
-	super super_block;
-}f_sys;
+tree *head = NULL;
+tree *tail = NULL;
 
-char *command;		//명령어 저장 ex) mycat test면 mycat 주소 저장
-char *object;		//명령어 다음에 나오는 파일 저장 ex) mycat test 이면 test주소 저장
-char temp[20];		//ex)mycat test 입력하면 "mycat test" 그대로 저장
+void myflush();
+void myls(tree **head);
+void mymkdir(char *name);
+void func(char *p1, char *p2, char *p3, char *p4, tree *root);
+void node_swap(tree *prev1, tree **node1, tree **prev2, tree **node2);
+void print_list(tree *head,char *option);
 
-void prompt();		//[/ ]$ 출력하는 함수
-void myflush();		
-void mycat();		
-void init_command_object(); //명령어 수행한 뒤 command & object 초기화
 int main()
+
 {
 	FILE *ifp=NULL;
-	f_sys fs;
+	//f_sys fs;
 	int check;	
-	if((ifp=fopen("info.txt","rb")) == NULL){
+	if((ifp=fopen("myfs","rb")) == NULL){
 		fprintf(stderr, "error : no myfs");
 		return 0;
 	}
-	fclose(ifp);
 
-	check = fread(&fs,sizeof(f_sys),1,ifp);		
+/*	check = fread(&fs,sizeof(f_sys),1,ifp);		
 	while(check){
 		check = fread(&fs, sizeof(f_sys),1,ifp); 	//이진파일 읽어서 저장하는 과정
 	}
-
+*/
 	while(1){
-		prompt();
+		char prompt[100];
+		char *word;
+		char *ptr[4];
+		int j=0;	
+		
+		tree *root;								//make root directory
+		root = (tree *)malloc(sizeof(tree));
+		strcpy(root->name,"/");
+		root->sibling = NULL;
+		root->child = NULL;
+		head = root;
+		tail = root;
+
+		//inode sturct 만들어지면 추가하기
+		for(int i=0; i<4; i++){
+			ptr[i] = (char *)malloc(sizeof(char) * 32);
+		}
+
+		printf("[%s ]$ ",root->name);
+		scanf("%[^\n]",prompt);
+		word=strtok(prompt," ");
+		while(word != NULL){
+			strcpy(ptr[j++],word);
+			word=strtok(NULL," ");
+		}
+		func(ptr[0], ptr[1], ptr[2], ptr[3], root);
+
+		for(int i=0; i<4; i++)
+			free(ptr[i]);
+		for(int i=0; i<100; i++)
+			prompt[i] = '\0';
 		myflush();
-		if(!strcmp(command, "mycat")){
-			mycat();
-		}
-		if(!strcmp(command,"byebye")){
-			return 0;
-		}
-		init_command_object();
 
 	}
-
-
-	
 	return 0;
-}
-void prompt()
-{
-	char set[20]={'[','/',' ',']','$'};
-	printf("%s ",set);
-	scanf("%[^\n]",temp);
-	command = strtok(temp," ");
-	object = strtok(NULL," ");
-}
-void init_command_object()
-{
-	int i;
-	for(i=0; i<20; i++){
-		command[i] = '\0';
-		object[i]  = '\0';
-	}
 }
 void myflush()
 {
 	while(getchar()!='\n');
 }
-void mycat()
+void func(char *p1, char *p2, char *p3, char *p4, tree *root)
 {
-	int ch;
-	FILE *fp;
-		
-	
-	if((fp=fopen(object,"rb"))==NULL){
-		fprintf(stderr, "ERROR!\n");
-		return;
+	if(!(strcmp(p1,"mymkdir"))){
+		mymkdir(p2);
 	}
-
-	while((ch=getc(fp))!=EOF){
-		putchar(ch);
+	if(!(strcmp(p1,"myls"))){
+		myls(&head);
+		print_list(head,p2);
 	}
-	printf("\n");
-	fclose(fp);
+	if(!(strcmp(p1,"byebye"))){
+		exit(1);
+	}
 }
+void mymkdir(char *name)
+{
+	tree *new=(tree *)malloc(sizeof(tree));
+	if(head->child == NULL){					// 서브디렉터리 없는 경우
+		head->child=new;
+		strcpy(new->name,name);
+		new->sibling=NULL;
+		new->child=NULL;
+	}
+	else{
+		tail->sibling=new;
+		strcpy(new->name,name);
+		new->sibling=NULL;
+		new->child=NULL;
+		tail=new;
+	}
+}
+void myls(tree **head)
+{
+	tree *tmp_head=NULL;
+	tree *prev1=NULL;
+	tree *prev2=NULL;
+	tree *node1=NULL;
+	tree *node2=NULL;
 
+	if(*head==NULL)								//디렉터리가 없는 경우
+		return;
+	if((*head)->sibling==NULL)					//하위 디렉터리가 1개인 경우
+		return;
+	tmp_head=(tree *)malloc(sizeof(tree));
+	tmp_head->sibling=*head;
 
+	prev1=tmp_head;
+
+	while(prev1 != NULL && prev1->sibling != NULL){
+		node1=prev1->sibling;
+		prev2=node1;
+
+		while(prev2 != NULL && prev2->sibling != NULL){
+			node2=prev2->sibling;
+
+			if(strcmp(node1->name,node2->name) > 0)
+				node_swap(prev1,&node1,&prev2,&node2);
+		}
+		*head=tmp_head->sibling;
+	}
+	free(tmp_head);
+}
+void node_swap(tree *prev1, tree **node1, tree **prev2, tree **node2)
+{
+	tree *tmp=NULL;
+
+	if(*node1 == *prev2){
+		prev1->sibling=*node2;
+		*prev2=*node2;
+
+		tmp=*node1;
+		*node1=*node2;
+		*node2=tmp;
+
+		(*node2)->sibling =(*node1)->sibling;
+		(*node1)->sibling =(*node2);
+	}
+	else{
+		prev1->sibling=*node2;
+		(*prev2)->sibling=*node1;
+
+		tmp=*node1;
+		*node1=*node2;
+		*node2=tmp;
+
+		tmp=(*node1)->sibling;
+		(*node1)->sibling=(*node2)->sibling;
+		(*node2)->sibling = tmp;
+	}
+}
+void print_list(tree *head,char *option)
+{
+	while(head != NULL){
+		printf("%s\n",head->name);
+		head=head->sibling;
+	}
+}
+		
