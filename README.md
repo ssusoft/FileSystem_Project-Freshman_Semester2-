@@ -1,4 +1,2 @@
-# hello-world
+# Filesystem Project (in C)
 
-Hi. My nickname is SoongsilMilhouse.
-Keep in touch :)
