@@ -2,6 +2,9 @@
 #include<string.h>
 #include<stdlib.h>
 #include<stdbool.h>
+
+// plz need head
+
 typedef struct{
     char inode[64];
     char data[128];
